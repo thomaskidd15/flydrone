@@ -158,7 +158,7 @@ Pico powered from the FC's 5 V pad into VSYS. On the ArduPilot side set that ser
 never changes mode; your transmitter does that, and its kill switch always wins. If frames stop
 arriving for 300 ms the Pico commands hover.
 
-Build and flash (arduino-cli, portable copy in `%LOCALAPPDATA%\Programsrduino-cli`, or the
+Build and flash (arduino-cli, portable copy in `%LOCALAPPDATA%\Programs\arduino-cli`, or the
 Arduino IDE with the "Raspberry Pi Pico/RP2040/RP2350" core installed):
 
 ```

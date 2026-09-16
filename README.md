@@ -1,0 +1,118 @@
+# fly-drone
+
+A 3D-printed quadcopter that carries a simulated fruit-fly brain and is left to do whatever the
+wiring does. The brain is a leaky integrate-and-fire (LIF) spiking network built from the
+FlyWire connectome, running on a Raspberry Pi Pico 2 on the drone. A normal flight controller
+keeps the drone in the air; the fly brain only decides where it goes.
+
+```
+frame/gen_frame.py      parametric frame generator (manifold3d), two presets
+frame/check_2d.py       flat sections of every part, for checking hole placement
+frame/stl/pico35/       3.5-inch build for the Pico 2   <- print this one
+frame/stl/pi5_5in/      5-inch build sized for a Raspberry Pi 5 (whole brain onboard), for later
+```
+
+Regenerate after editing parameters:
+
+```
+uv run python frame/gen_frame.py            # pico35
+uv run python frame/gen_frame.py pi5_5in
+uv run python frame/check_2d.py pico35      # writes sections.png
+```
+
+## The frame (pico35)
+
+Fully printed X quad, 180 mm wheelbase, 3.5-inch props. Every part fits a 180 mm bed.
+
+| Part | Qty | Material | Print notes |
+|---|---|---|---|
+| bottom_plate.stl | 1 | PETG | flat, 4 walls, 40% infill |
+| top_plate.stl | 1 | PETG | flat, 4 walls, 40% infill |
+| arm_x4.stl | 4 | PETG or PETG-CF | lying flat as exported, 6 walls or 100% infill |
+| leg_x4.stl | 4 | PETG or TPU | standing as exported |
+| camera_bracket.stl | 1 | PETG | exported on its side, print as is |
+
+Frame weight is about 65 g in PETG. Print two spare arms; they are the crash part.
+
+How it goes together:
+
+- Each arm has a thin tab at the inner end. The tab sits between the bottom and top plates on
+  the diagonal "ear" and is held by two M3 x 20 bolts. The arm steps up to full height right
+  where the ear ends, so the step locates it against the plate edge.
+- The same two bolts continue through the bottom plate into a nut trap in a leg under each
+  corner. Slide an M3 nut into the side slot of each leg first.
+- The flight controller stack goes on the top plate. Both the 20 x 20 mm (M2) and
+  30.5 x 30.5 mm (M3) patterns are there.
+- The Pico 2 mounts across the body on four 20 mm M2 standoffs, above the stack.
+- The camera bracket bolts to the two M3 holes at the nose of the top plate and hooks over the
+  plate edge. The upright has two vertical slots 21 mm apart (fits the Pi Camera Module 3
+  pattern) plus zip-tie slots for anything else, tilted 15 degrees up.
+- The optical-flow sensor mounts on the tail of the bottom plate, looking down through the
+  10 mm hole. There is a generic 15 x 15 mm M2 pattern around it; zip-tie if yours differs.
+- Battery goes under the bottom plate, strap through the two slots, between the legs.
+
+Motor pads carry both a 16 x 16 M3 and a 12 x 12 M2 pattern (rotated 45 degrees from each
+other), so any 1404 / 1504 / 2004 class motor bolts on.
+
+Clearances as generated: prop disc to camera 13.5 mm, prop disc to Pico 21 mm,
+prop tip to prop tip 38 mm.
+
+## Parts to buy (pico35)
+
+| Item | Spec | Notes |
+|---|---|---|
+| Motors x4 | 1404 ~3800 KV or 1504 ~3000 KV, 4S | 12 x 12 M2 mount is most common in this size |
+| Props | 3.5-inch tri-blade, 4 + spares | e.g. Gemfan 3520 or HQProp 3.5 x 2 x 3 |
+| Flight controller | 20 x 20 or 30.5 x 30.5, **ArduPilot-supported**, one spare UART | e.g. Kakute H7 Mini (20 x 20) or Matek H743-SLIM (30.5) |
+| ESC | 4-in-1, 20 to 35 A, 4S, same mount as the FC | comes as a stack with many FCs |
+| Optical flow + rangefinder | Matek 3901-L0X or ARK Flow | indoor position hold, no GPS |
+| Battery | 4S 650 to 850 mAh LiPo, XT30 | plus a LiPo charger and a charging bag |
+| Radio | ELRS receiver + an ELRS transmitter (RadioMaster Pocket is the cheap one) | needed to arm, to test-fly, and as the kill switch. Not optional |
+| Brain | Raspberry Pi Pico 2 (you have it) | powered from the FC's 5 V rail |
+| Eye | Arducam HM01B0 mono camera for Pico, or an OV7670; a VL53L1X ToF sensor is the simplest "something is approaching" input | fly eyes are low-res, 320 x 240 is plenty |
+| Hardware | 8x M3 x 20 bolts, 8x M3 nuts, 4x M2 x 20 standoffs + screws, FC stack screws/gummies, 200 mm battery strap, zip ties, XT30 pigtail, 20 AWG wire, 35 V 470 uF cap for the ESC | |
+
+Expected all-up weight is around 250 g. 1404 motors on 4S give roughly 1.5 kg of thrust
+for that, so it is not marginal. Flight time will be 5 to 7 minutes per battery; the brain
+keeps running between flights, flying is just when the battery is in.
+
+## The brain on a Pico 2
+
+The Pico 2 is a microcontroller (two Cortex-M33 at 150 MHz, 520 KB RAM, 4 MB flash), so it
+cannot hold the whole 139k-neuron brain. It can hold a real subcircuit of it:
+
+- Flash budget: ~4 MB of connections at 6 bytes each (uint32 target + int16 weight) is about
+  600k synapses. RAM budget: ~40k neurons of state. A 5k to 15k neuron visual-to-descending
+  subcircuit at 1 ms steps, event-driven, fits with room to spare.
+- Core 1 runs the LIF network. Core 0 reads the camera, turns it into ~200 "ommatidia" per
+  eye, drives the input neurons, reads the descending neurons, and talks to the flight
+  controller.
+- The subcircuit is extracted on the PC from the FlyWire v783 release the way
+  [mhdsilva/flywire-arduino](https://github.com/mhdsilva/flywire-arduino) does it (looming
+  detectors LC4/LPLC2 through interneurons to the giant fiber DNp01), extended with the
+  motion pathway (T4/T5 to the lobula plate tangential cells to turning descending neurons).
+  [Ranuja01/fly-simulator](https://github.com/Ranuja01/fly-simulator) has a 15k-neuron
+  looming-escape cut that is a good size reference.
+- Output: giant fiber rate -> escape burst (up and back), left/right descending neuron rates
+  -> yaw and sideways velocity, forward descending neurons -> forward velocity. Sent as
+  MAVLink velocity setpoints in GUIDED mode (the MAVLink C library runs fine on an MCU).
+- The flight controller (ArduPilot, FlowHold or Loiter indoors) does all stabilisation.
+  The brain gives decisions; the stabiliser gives reflexes.
+
+If you later want the whole brain onboard, the `pi5_5in` preset carries a Raspberry Pi 5.
+[flykeeper](https://github.com/fortunto2/flykeeper) runs the full FlyWire connectome in
+real time in Rust on a phone-class ARM chip, so a Pi 5 is realistic.
+
+## Build order
+
+1. Print the frame and buy the parts above.
+2. Build it as a normal ArduPilot quad first: bind the radio, calibrate, hover in Stabilize,
+   then FlowHold. No brain yet. A drone that hovers on its own is the prerequisite.
+3. Wire the Pico 2 to a spare FC UART and prove it can push velocity setpoints in GUIDED mode
+   from a hard-coded script, indoors, in a net.
+4. Bench the brain on the Pico: run the subcircuit, wave a hand at the camera, watch the giant
+   fiber fire on the serial monitor.
+5. Plug the brain output into step 3. Fly in a net with a finger on the kill switch.
+
+Expect: nothing without input; a flinch when something approaches; turning toward motion if
+the motion pathway is in the cut. Anything beyond that is your decoder, not the fly.

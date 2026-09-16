@@ -1,0 +1,15 @@
+[project]
+name = "fly-drone"
+version = "0.1.0"
+description = "3D-printed quadcopter driven by a simulated fruit-fly connectome (FlyWire) on a Raspberry Pi Pico 2"
+authors = [
+    { name = "Thomas Kidd", email = "kidd.thomas@icloud.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "manifold3d>=3.5.3",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.3",
+    "scipy>=1.18.1",
+    "trimesh>=5.1.0",
+]

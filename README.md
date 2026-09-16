@@ -34,6 +34,24 @@ Fully printed X quad, 180 mm wheelbase, 3.5-inch props. Every part fits a 180 mm
 
 Frame weight is about 65 g in PETG. Print two spare arms; they are the crash part.
 
+`print_plate_220mm.stl` has every part already laid out in print orientation for a
+220 x 220 mm bed (Creality K1 / K1C, Ender 3 class). Drop that one file into the slicer,
+no supports, no rotation needed. The 5-inch preset does not fit one plate; print its parts
+in two jobs.
+
+Creality K1 settings that work for this (PETG):
+
+- 0.2 mm layers, 4 walls on plates, 6 walls or 100% infill on arms.
+- 240 to 250 C nozzle, 75 to 80 C bed. Slow it to about 150 mm/s on outer walls; the
+  stock 300 mm/s PETG profile is fine for the plates but the arms like it slower and hotter.
+- Part fan 30 to 50%. Turn the auxiliary side fan OFF for PETG; it wrecks layer bonding.
+  Chamber fan off. Keep the lid on and the door shut.
+- PETG bonds too hard to the K1's smooth PEI sheet and can tear the coating. Wipe a thin
+  film of glue stick on first as a release layer, or use a textured PEI plate.
+- PETG-CF only on a K1C or a K1 with a hardened-steel nozzle; the stock brass nozzle wears
+  out. Plain PETG with 6 walls is strong enough for the arms.
+- TPU legs are optional. If you try them, 30 to 40 mm/s, retraction 0.5 mm, 220 C.
+
 How it goes together:
 
 - Each arm has a thin tab at the inner end. The tab sits between the bottom and top plates on

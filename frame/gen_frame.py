@@ -243,8 +243,8 @@ def leg_local(p: Preset) -> Manifold:
 def camera_bracket_local(p: Preset) -> Manifold:
     """Local frame: plate front edge at x = 0, base extends to -x over the plate, z = 0 is the plate top.
     A lip hooks over the plate edge so two bolts are enough."""
-    base = Manifold.cube([10.0, 30.0, 3.0]).translate([-10.0, -15.0, 0])
-    lip = Manifold.cube([2.5, 30.0, p.top_t + 3.0]).translate([0.0, -15.0, -p.top_t])
+    base = Manifold.cube([10.0, 32.0, 3.0]).translate([-10.0, -16.0, 0])
+    lip = Manifold.cube([2.5, 32.0, p.top_t + 3.0]).translate([0.0, -16.0, -p.top_t])
     up_t, up_w, up_h = 3.0, 32.0, p.cam_upright_h
     upright = Manifold.cube([up_t, up_w, up_h]).translate([-up_t, -up_w / 2, 0])
     cut = []
@@ -334,6 +334,30 @@ def render_preview(asm: trimesh.Trimesh, ghost: trimesh.Trimesh, path: Path, lim
     print(f"  preview -> {path}")
 
 
+def bed_place(part: Manifold, cx: float, cy: float, rot_z: float = 0.0) -> Manifold:
+    """Rotate about z, then move the part so its footprint centre is at (cx, cy) with its bottom on z = 0."""
+    part = part.rotate([0, 0, rot_z])
+    x0, y0, z0, x1, y1, z1 = part.bounding_box()
+    return part.translate([cx - (x0 + x1) / 2, cy - (y0 + y1) / 2, -z0])
+
+
+def print_plate(p: Preset, parts: dict[str, Manifold]) -> Manifold | None:
+    """One-job plate for a 220 x 220 bed (Creality K1 class). Only the small preset fits in one go."""
+    if p.name != "pico35":
+        return None
+    cam = parts["camera"].rotate([90, 0, 0])
+    pieces = [
+        bed_place(parts["bottom"], -52, 58),
+        bed_place(parts["top"], 52, 58),
+        bed_place(parts["arm"], -55, -5), bed_place(parts["arm"], 45, -5),
+        bed_place(parts["arm"], -55, -40), bed_place(parts["arm"], 45, -40),
+        bed_place(parts["leg"], -80, -75), bed_place(parts["leg"], -50, -75),
+        bed_place(parts["leg"], -20, -75), bed_place(parts["leg"], 10, -75),
+        bed_place(cam, 50, -75),
+    ]
+    return union(pieces)
+
+
 def build(p: Preset) -> None:
     out = Path(__file__).parent / "stl" / p.name
     print(f"[{p.name}]  wheelbase {p.wheelbase:.0f} mm, props {p.prop_dia:.0f} mm")
@@ -349,6 +373,9 @@ def build(p: Preset) -> None:
     save(parts["arm"], out, "arm_x4.stl")
     save(parts["leg"], out, "leg_x4.stl")
     save(parts["camera"].rotate([90, 0, 0]), out, "camera_bracket.stl")   # on its side: no overhangs
+    plate = print_plate(p, parts)
+    if plate is not None:
+        save(plate, out, "print_plate_220mm.stl")
     asm_tm = save(assembly(p, parts), out, "assembly_preview.stl")
     ghost_tm = save(ghosts(p), out, "ghost_components.stl")
     clearance_report(p)

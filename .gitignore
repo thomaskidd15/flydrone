@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# slicer scratch
+frame/k1/gcode/_work/
+frame/k1/gcode/*.log
+frame/k1/_dbg*/

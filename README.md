@@ -34,12 +34,29 @@ Fully printed X quad, 180 mm wheelbase, 3.5-inch props. Every part fits a 180 mm
 
 Frame weight is about 65 g in PETG. Print two spare arms; they are the crash part.
 
-`print_plate_220mm.stl` has every part already laid out in print orientation for a
-220 x 220 mm bed (Creality K1 / K1C, Ender 3 class). Drop that one file into the slicer,
-no supports, no rotation needed. The 5-inch preset does not fit one plate; print its parts
-in two jobs.
+### Ready-to-print G-code for a Creality K1 (0.4 mm nozzle, PETG)
 
-Creality K1 settings that work for this (PETG):
+| File | What | Time | Filament |
+|---|---|---|---|
+| `frame/k1/gcode/flydrone_K1_plateA_plates_legs_bracket_PETG.gcode` | both plates, 4 legs, camera bracket. 4 walls, 40% gyroid, 4 mm brim | 2 h 15 min | 55 g |
+| `frame/k1/gcode/flydrone_K1_plateB_arms_PETG.gcode` | 4 arms. 6 walls, 100% infill, no brim | 1 h 27 min | 37 g |
+
+Copy them to a USB stick and print from the K1's screen, or upload through the K1's web
+page (Fluidd, `http://<printer-ip>:4408`). Print plate B twice if you want the spare arms.
+The G-code is for a stock K1 with the Creality Klipper `START_PRINT` / `END_PRINT` macros,
+245 C nozzle, 75 C bed, auxiliary fan off. A K1C or K1 Max can run it as-is too (same
+macros, bigger bed on the Max).
+
+The layouts are also there as STLs if you would rather slice yourself:
+`plate_A_plates_legs_bracket.stl`, `plate_B_arms.stl`, or `print_plate_220mm.stl` with
+everything in one job. All are already centred on a 220 x 220 bed in print orientation,
+no supports needed. The 5-inch preset does not fit one plate; print its parts in two jobs.
+
+To re-slice after changing the frame, `uv run python frame/k1/slice.py`. It uses OrcaSlicer's
+command line (portable build in `%LOCALAPPDATA%\Programs\OrcaSlicer-portable`, or on PATH),
+flattens Orca's Creality K1 profiles into `frame/k1/profiles/` and applies the settings below.
+
+The settings baked into that G-code, if you slice it yourself:
 
 - 0.2 mm layers, 4 walls on plates, 6 walls or 100% infill on arms.
 - 240 to 250 C nozzle, 75 to 80 C bed. Slow it to about 150 mm/s on outer walls; the

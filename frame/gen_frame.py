@@ -254,8 +254,7 @@ def camera_bracket_local(p: Preset) -> Manifold:
     for sy in (-13.0, 13.0):                     # zip-tie slots near the outer edges
         cut.append(Manifold.cube([up_t + 2, 1.6, 8.0]).translate([-up_t - 1, sy - 0.8, up_h / 2 - 4.0]))
     upright = (upright - union(cut)).rotate([0, -CAM_TILT, 0]).translate([0.0, 0, 3.0])
-    gusset = Manifold.cube([7.0, 3.0, 8.0]).translate([-7.0 - up_t, -1.5, 3.0])
-    part = base + lip + upright + gusset
+    part = base + lip + upright          # no gusset: it would be a floating slab when printed on its side
     bolts = [cyl(M3, 5.0, -5.0, dy, -1) for dy in (-9.0, 9.0)]
     return part - union(bolts)
 
@@ -341,21 +340,38 @@ def bed_place(part: Manifold, cx: float, cy: float, rot_z: float = 0.0) -> Manif
     return part.translate([cx - (x0 + x1) / 2, cy - (y0 + y1) / 2, -z0])
 
 
-def print_plate(p: Preset, parts: dict[str, Manifold]) -> Manifold | None:
-    """One-job plate for a 220 x 220 bed (Creality K1 class). Only the small preset fits in one go."""
+def print_plates(p: Preset, parts: dict[str, Manifold]) -> dict[str, Manifold]:
+    """Print plates for a 220 x 220 bed (Creality K1 class), parts already in print orientation.
+    A = both plates, four legs, camera bracket (4 walls, 40% infill)
+    B = four arms (6 walls, solid)
+    all = everything in one job, if you would rather print once with one setting."""
     if p.name != "pico35":
-        return None
+        return {}
     cam = parts["camera"].rotate([90, 0, 0])
-    pieces = [
-        bed_place(parts["bottom"], -52, 58),
-        bed_place(parts["top"], 52, 58),
+    a = [
+        bed_place(parts["bottom"], -52, 40), bed_place(parts["top"], 52, 40),
+        bed_place(parts["leg"], -80, -20), bed_place(parts["leg"], -50, -20),
+        bed_place(parts["leg"], -20, -20), bed_place(parts["leg"], 10, -20),
+        bed_place(cam, 50, -20),
+    ]
+    b = [
+        bed_place(parts["arm"], -55, 25), bed_place(parts["arm"], 45, 25),
+        bed_place(parts["arm"], -55, -15), bed_place(parts["arm"], 45, -15),
+    ]
+    everything = [
+        bed_place(parts["bottom"], -52, 58), bed_place(parts["top"], 52, 58),
         bed_place(parts["arm"], -55, -5), bed_place(parts["arm"], 45, -5),
         bed_place(parts["arm"], -55, -40), bed_place(parts["arm"], 45, -40),
         bed_place(parts["leg"], -80, -75), bed_place(parts["leg"], -50, -75),
         bed_place(parts["leg"], -20, -75), bed_place(parts["leg"], 10, -75),
         bed_place(cam, 50, -75),
     ]
-    return union(pieces)
+    bed = [110.0, 110.0, 0.0]            # centre of a 220 x 220 bed
+    return {
+        "plate_A_plates_legs_bracket.stl": union(a).translate(bed),
+        "plate_B_arms.stl": union(b).translate(bed),
+        "print_plate_220mm.stl": union(everything).translate(bed),
+    }
 
 
 def build(p: Preset) -> None:
@@ -373,9 +389,8 @@ def build(p: Preset) -> None:
     save(parts["arm"], out, "arm_x4.stl")
     save(parts["leg"], out, "leg_x4.stl")
     save(parts["camera"].rotate([90, 0, 0]), out, "camera_bracket.stl")   # on its side: no overhangs
-    plate = print_plate(p, parts)
-    if plate is not None:
-        save(plate, out, "print_plate_220mm.stl")
+    for name, plate in print_plates(p, parts).items():
+        save(plate, out, name)
     asm_tm = save(assembly(p, parts), out, "assembly_preview.stl")
     ghost_tm = save(ghosts(p), out, "ghost_components.stl")
     clearance_report(p)

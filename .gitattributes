@@ -1,0 +1,4 @@
+*.gcode -text
+*.stl -text
+*.png -text
+*.3mf -text

@@ -34,12 +34,16 @@ Fully printed X quad, 180 mm wheelbase, 3.5-inch props. Every part fits a 180 mm
 
 Frame weight is about 65 g in PETG. Print two spare arms; they are the crash part.
 
-### Ready-to-print G-code for a Creality K1 (0.4 mm nozzle, PETG)
+### Ready-to-print G-code for a Creality K1 (PETG)
 
-| File | What | Time | Filament |
-|---|---|---|---|
-| `frame/k1/gcode/flydrone_K1_plateA_plates_legs_bracket_PETG.gcode` | both plates, 4 legs, camera bracket. 4 walls, 40% gyroid, 4 mm brim | 2 h 15 min | 55 g |
-| `frame/k1/gcode/flydrone_K1_plateB_arms_PETG.gcode` | 4 arms. 6 walls, 100% infill, no brim | 1 h 27 min | 37 g |
+Files are in `frame/k1/gcode/`. Use the set that matches the nozzle on your K1.
+
+| Nozzle | File | What | Time | Filament |
+|---|---|---|---|---|
+| **0.6 mm** | `flydrone_K1_0.6nozzle_plateA_plates_legs_bracket_PETG.gcode` | both plates, 4 legs, camera bracket. 0.25 mm layers, 3 walls, 40% gyroid, 4 mm brim | 2 h 42 min | 56 g |
+| **0.6 mm** | `flydrone_K1_0.6nozzle_plateB_arms_PETG.gcode` | 4 arms. 0.25 mm layers, 4 walls, 100% infill, no brim | 1 h 32 min | 37 g |
+| 0.4 mm | `flydrone_K1_0.4nozzle_plateA_plates_legs_bracket_PETG.gcode` | same parts, 0.2 mm layers, 4 walls | 2 h 15 min | 55 g |
+| 0.4 mm | `flydrone_K1_0.4nozzle_plateB_arms_PETG.gcode` | same arms, 0.2 mm layers, 6 walls | 1 h 27 min | 37 g |
 
 Copy them to a USB stick and print from the K1's screen, or upload through the K1's web
 page (Fluidd, `http://<printer-ip>:4408`). Print plate B twice if you want the spare arms.
@@ -47,16 +51,22 @@ The G-code is for a stock K1 with the Creality Klipper `START_PRINT` / `END_PRIN
 245 C nozzle, 75 C bed, auxiliary fan off. A K1C or K1 Max can run it as-is too (same
 macros, bigger bed on the Max).
 
+The 0.6 mm set uses 0.62 mm lines and 0.25 mm layers, which divides every part thickness
+into whole layers (3.5 / 2.5 / 7 / 32 mm), opens the M2 and M3 holes by 0.1 mm because a
+fat nozzle closes small holes, and is capped at 12 mm3/s of PETG. Raise `max_vol` in
+`frame/k1/slice.py` if your hotend keeps up and you want it faster.
+
 The layouts are also there as STLs if you would rather slice yourself:
 `plate_A_plates_legs_bracket.stl`, `plate_B_arms.stl`, or `print_plate_220mm.stl` with
 everything in one job. All are already centred on a 220 x 220 bed in print orientation,
 no supports needed. The 5-inch preset does not fit one plate; print its parts in two jobs.
 
-To re-slice after changing the frame, `uv run python frame/k1/slice.py`. It uses OrcaSlicer's
+To re-slice after changing the frame, `uv run python frame/k1/slice.py` (0.6 mm) or
+`uv run python frame/k1/slice.py 0.4`. It uses OrcaSlicer's
 command line (portable build in `%LOCALAPPDATA%\Programs\OrcaSlicer-portable`, or on PATH),
-flattens Orca's Creality K1 profiles into `frame/k1/profiles/` and applies the settings below.
+flattens Orca's Creality K1 profiles into `frame/k1/profiles/<nozzle>/` and applies the settings below.
 
-The settings baked into that G-code, if you slice it yourself:
+The settings baked into that G-code, if you slice it yourself (0.4 mm numbers; the 0.6 mm set uses 0.25 mm layers and one fewer wall):
 
 - 0.2 mm layers, 4 walls on plates, 6 walls or 100% infill on arms.
 - 240 to 250 C nozzle, 75 to 80 C bed. Slow it to about 150 mm/s on outer walls; the

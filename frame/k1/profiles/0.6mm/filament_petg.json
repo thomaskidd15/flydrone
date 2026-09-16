@@ -1,6 +1,6 @@
 {
   "type": "filament",
-  "name": "flydrone PETG @K1",
+  "name": "flydrone PETG @K1 0.6",
   "cool_plate_temp": [
     "75"
   ],
@@ -62,7 +62,7 @@
     "1.75"
   ],
   "filament_max_volumetric_speed": [
-    "9"
+    "12"
   ],
   "filament_minimal_purge_on_wipe_tower": [
     "15"
@@ -150,7 +150,7 @@
     "0"
   ],
   "compatible_printers": [
-    "Creality K1 (0.4 nozzle)"
+    "Creality K1 (0.6 nozzle)"
   ],
   "from": "system",
   "version": "2.4.2.0"

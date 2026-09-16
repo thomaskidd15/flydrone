@@ -2,3 +2,4 @@
 *.stl -text
 *.png -text
 *.3mf -text
+*.uf2 -text

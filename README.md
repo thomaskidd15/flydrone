@@ -121,6 +121,74 @@ Expected all-up weight is around 250 g. 1404 motors on 4S give roughly 1.5 kg of
 for that, so it is not marginal. Flight time will be 5 to 7 minutes per battery; the brain
 keeps running between flights, flying is just when the battery is in.
 
+## Firmware: the hand-written reflex brain (Pico 2)
+
+`firmware/reflex/` is an Arduino sketch for the Pico 2 (arduino-pico core). It is the
+"acts like a fly" version: no connectome, just the two or three reflexes a fly is known for,
+written by hand. It exists to debug the eye, the flight-controller link and the flying before
+the real fly circuit goes in, and to be the thing the connectome version is compared against.
+
+```
+eye (HM01B0 camera, or frames from the PC over USB)
+  -> 32 x 24 retina
+  -> ReflexBrain        photoreceptor high-pass, Reichardt motion detectors (T4/T5),
+                        whole-field motion -> optomotor yaw (HS cells),
+                        left/right flow balance -> sidestep (corridor centring),
+                        LPLC2-style looming units -> giant fiber -> ESCAPE
+  -> DescendingCommand  body-frame velocity + yaw rate
+  -> FcLink             MAVLink 2 SET_POSITION_TARGET_LOCAL_NED to ArduPilot, 10 Hz
+```
+
+Files:
+
+| File | What |
+|---|---|
+| `reflex.ino` | main loop: eye -> brain -> flight controller, LED, telemetry on USB |
+| `config.h` | pins, camera mode, MAVLink ids, every reflex gain and threshold |
+| `brain.h` | `Retina`, `DescendingCommand`, and the `Brain` interface the connectome version will also implement |
+| `reflex_brain.h/.cpp` | the reflexes; pure C++, no Arduino dependency |
+| `eye.h/.cpp` | `EyeHM01B0` (camera via the vendored PicoHM01B0 PIO/DMA driver) and `EyeUsbSerial` (frames from the PC) |
+| `fc_link.h/.cpp` | hand-rolled MAVLink 2 framing for HEARTBEAT and SET_POSITION_TARGET_LOCAL_NED |
+| `src/PicoHM01B0/` | camera driver by pmarques-dev, BSD-2, vendored unchanged |
+
+Wiring: camera on GP4 (SDA), GP5 (SCL), GP16 (VSYNC), GP6 (D0), GP14 (PCLK), GP3 (MCLK),
+3V3 and GND. Flight controller UART: Pico GP0 (TX) to FC RX, GP1 (RX) to FC TX, GND to GND.
+Pico powered from the FC's 5 V pad into VSYS. On the ArduPilot side set that serial port to
+`SERIALn_PROTOCOL = 2` and `SERIALn_BAUD = 115`, and fly in GUIDED. The Pico never arms and
+never changes mode; your transmitter does that, and its kill switch always wins. If frames stop
+arriving for 300 ms the Pico commands hover.
+
+Build and flash (arduino-cli, portable copy in `%LOCALAPPDATA%\Programsrduino-cli`, or the
+Arduino IDE with the "Raspberry Pi Pico/RP2040/RP2350" core installed):
+
+```
+arduino-cli compile --fqbn rp2040:rp2040:rpipico2 --output-dir build/pico2 firmware/reflex
+arduino-cli upload  --fqbn rp2040:rp2040:rpipico2 -p COM5 firmware/reflex
+```
+
+or hold BOOTSEL while plugging the Pico in and copy the `.uf2` onto the drive that appears.
+`firmware/reflex/prebuilt/reflex_pico2_camera.uf2` is a ready-built image of the camera
+configuration, so you can try it without installing any toolchain.
+
+Testing without hardware, in this order:
+
+1. `uv run python tools/reflex_sim.py` runs the same math in numpy on synthetic stimuli
+   (gratings, a looming disc, a passing object, corridors, noise) and writes
+   `tools/reflex_sim.png` with PASS/FAIL per case. Tune constants here, then copy to `config.h`.
+2. `uv run python tools/host_check.py` compiles the firmware's `reflex_brain.cpp` for the PC
+   (with zig, a dev dependency) and checks it gives the same outputs as the Python on identical
+   8-bit frames.
+3. Set `EYE_SOURCE = EyeSource::UsbSerial` in `config.h`, flash, then
+   `uv run python tools/bench_eye.py --port COM5 --stim cycle` streams the synthetic stimuli
+   to the Pico over USB and prints the telemetry it sends back. Watch `yaw` flip sign with the
+   grating direction and `esc=1` on the looming disc.
+4. Camera in, `EYE_SOURCE = EyeSource::Camera`, flash, open a serial monitor at 115200, wave a
+   hand at it. Then wire the flight controller.
+
+What it does in the air: hovers, turns to follow motion across its view, drifts away from
+the side with more motion, and jumps up and back when something comes straight at it. Set
+`CRUISE_VX` above zero and it wanders forward. Everything else is you tuning gains.
+
 ## The brain on a Pico 2
 
 The Pico 2 is a microcontroller (two Cortex-M33 at 150 MHz, 520 KB RAM, 4 MB flash), so it

@@ -13,3 +13,9 @@ dependencies = [
     "scipy>=1.18.1",
     "trimesh>=5.1.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pyserial>=3.5",
+    "ziglang>=0.16.0",
+]
